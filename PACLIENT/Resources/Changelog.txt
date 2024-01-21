@@ -1,0 +1,93 @@
+﻿v1.1.9
+• [+] Added Night Vision Intensity slider to Self tab.
+• [+] Added 'Object Spam' to Players tab. Spams ship objects on the selected player.
+• [/] 'Aggro Enemies' now effects spiders.
+• [/] Fixed menu breaking if a key was invalid.
+• [/] Fixed Thirdperson causing ESP to be inaccurate.
+
+v1.1.8
+• [+] Added 'Aggro Enemies' to Players tab. Makes enemies target the selected player.
+• [+] Added 'Full Resolution' to Graphics tab. Forces the game to render in full resolution.
+• [/] Moved Thirdperson (Self => Graphics)
+
+v1.1.7
+• [+] Added 'Field of View' to Graphics tab.
+• [+] Added 'Diable Visor' to Graphics tab.
+• [/] Simplified the bind system. Issues involving binds should be fixed.
+
+v1.1.6
+• [+] Added 'Thirdperson' to Self tab
+• [+] Added 'No Weight' to Self tab
+• [+] Added 'Send Message' to Misc tab
+• [+] Added 'Spam Message' to Misc tab
+• [+] Added 'Teleport All Enemies To' to Players tab
+• [+] Added 'Spam Message' to Players tab
+• [/] ESP text is now centered
+
+v1.1.5
+• [+] Added 'Suicide' to Self tab
+• [+] Added 'Possess Nearest Enemy' to Self tab - Note: You will be visibily within the enemy.
+
+v1.1.4
+• [/] If all upgrades and suits are unlocked, display a message.
+• [/] 'Unlock All Suits' will no longer be displayed when all suits are unlocked.
+• [/] Config system is now using Json
+• [/] Fixed default ship objects appearing in the Upgrades tab.
+• [/] Fixed already-unlocked Upgrades appearing in the Upgrades tab.
+
+v1.1.3
+• [+] Added 'Upgrades' Tab, You can now unlock each upgrade individually
+
+v1.1.2
+• [+] Added 'Terminal Noisemaker'
+• [+] Added 'Send Signal'
+• [+] Added 'Infinite Item Use'
+• [+] Added 'Unlock All Upgrades'
+• [/] 'Sensitive Landmines' no longer effects the local player.
+• [/] Fixed group credits not syncing after adding them.
+
+v1.1.1
+• [+] Added 'Open All Mechanical Doors'
+• [+] Added 'Close All Mechanical Doors'
+• [+] Added 'Send Message' under Players
+
+v1.1.0
+• [+] Added 'Always Show Clock'
+• [+] Added 'Teleport To Ship' for players
+
+v1.0.9
+• [+] Added 'Teleport To Ship'
+• [+] Added missing tooltip to respawn button
+
+v1.0.8
+• [+] Added Changelogs to "Start"
+• [+] Added "Unlock all suits" under "Misc"
+• [+] Added "Teleport all items". Allows you to teleport all items to you as soon as the ship has landed.
+• [+] Added "Start"
+
+v1.0.7
+• [/] Fixed Demigod
+• [/] Fixed Jump Height
+
+v1.0.6
+• [/] Added Tooltips
+• [-] Remove server refresh cooldown
+
+v1.0.5
+• [+] Added a Noclip Check
+• [/] Fixed GUI rendering issue when menu is closed 
+
+v1.0.4
+• [/] Fixed a bug where the settings were not loaded correctly
+
+v1.0.3
+• [+] Added Noclip
+• [+] Added Jump Height
+• [+] Added a 'Show Is Speaking' indicator
+• [+] Added Keybinds
+
+v1.0.2
+• [+] Added option to disable fall damage
+
+v1.0.1
+• [+] Added ESP distance limit
