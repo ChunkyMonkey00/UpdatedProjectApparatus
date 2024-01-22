@@ -38,5 +38,11 @@ For the prebuilt release, go to releases and download the zip file.
 
 Among other quality-of-life fixes.
 
+## Known Issues:
+Thanks to gulash (he knows who he is) for figuring this out
+
+`"found some bugs, a few of the tabs the content disappears when u click on them
+misc, graphics"` - Only happens in main menu.
+
 --- 
--Jamesbaus on UnkownCheats
+-jamesbaus on UnkownCheats
