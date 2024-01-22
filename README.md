@@ -5,13 +5,13 @@ Find the UC version here: [<Release> Project Apparatus Updated ](https://www.unk
 
 #### **Proudly the Only Cheat with a Working Aimbot!** 🎮🚀
 
+---
+
 ## Instructions:
 
 Extract the zip ANYWHERE, go to releases > inject.bat, and run that file while Lethal Company is playing.
 
 #### NOTE: You will need to turn off Windows Defender if you download the prebuilt. This is because Windows checks signatures of .exe and .dll files, and these aren't signed.
-
----
 
 ## PREBUILT:
 
