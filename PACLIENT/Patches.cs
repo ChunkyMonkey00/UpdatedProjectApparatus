@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Reflection;
 using GameNetcodeStuff;
@@ -878,7 +878,40 @@ namespace ProjectApparatus
             }
         }
 
-        [HarmonyPatch]
+    [HarmonyPatch]
+    internal class AdjustNormalLookingAimbotPatcher
+    {
+        [HarmonyPatch(typeof(PlayerControllerB), "CalculateNormalLookingInput")]
+        private static bool Prefix()
+        {
+            if (Settings.Instance.settingsData.b_isAimbotting)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+    }
+
+    [HarmonyPatch]
+    internal class AdjustSmoothLookingAimbotPatcher
+    {
+        [HarmonyPatch(typeof(PlayerControllerB), "CalculateSmoothLookingInput")]
+        private static bool Prefix()
+        {
+            if (Settings.Instance.settingsData.b_isAimbotting)
+            {
+                return false;
+            } else
+            {
+                return true;
+            }
+        }
+    }
+
+    [HarmonyPatch]
         internal class AdjustSmoothLookingPatcher
         {
             [HarmonyPatch(typeof(PlayerControllerB), "CalculateSmoothLookingInput")]
