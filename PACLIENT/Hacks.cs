@@ -21,6 +21,7 @@ using Enum = System.Enum;
 using Event = UnityEngine.Event;
 using Color = UnityEngine.Color;
 using static ProjectApparatus.Features.Thirdperson;
+using JetBrains.Annotations;
 
 namespace ProjectApparatus
 {
@@ -252,6 +253,11 @@ namespace ProjectApparatus
                 UI.Checkbox(ref settingsData.b_JumpHeight, $"Adjust Jump Height ({settingsData.i_JumpHeight})", "Allows you to modify your jump height.");
                 settingsData.i_JumpHeight = GUILayout.HorizontalSlider(settingsData.i_JumpHeight, 1, 100);
 
+                UI.Button("Doom mode", "Trust me, its worth it.", () =>
+                {
+                    DoomMode();
+                });
+
                 UI.Button("Suicide", "Kills local player.", () =>
                 {
                     Instance.localPlayer.DamagePlayerFromOtherClientServerRpc(100, new Vector3(), -1);
@@ -443,7 +449,8 @@ namespace ProjectApparatus
                 UI.Checkbox(ref settingsData.b_DisplayWorth, "Show Value", "Shows items' value.");
                 UI.Checkbox(ref settingsData.b_DisplayDistance, "Show Distance", "Shows the distance between you and the entity.");
                 UI.Checkbox(ref settingsData.b_DisplaySpeaking, "Show Is Speaking", "Shows if the player is speaking.");
-                UI.Checkbox(ref settingsData.b_AimbotEnabled, "Aimbot", "WIP snaps to nearest enemy on screen");
+                UI.Checkbox(ref settingsData.b_AimbotEnabled, "Aimbot", "Proudly finished! Snaps to nearest enemy on screen");
+                UI.Checkbox(ref settingsData.b_WallCheck, "Wall check", "Should snap through walls?");
 
                 UI.Checkbox(ref settingsData.b_ItemDistanceLimit, "Item Distance Limit (" + Mathf.RoundToInt(settingsData.fl_ItemDistanceLimit) + ")", "Toggle to set the item distance limit.");
                 settingsData.fl_ItemDistanceLimit = GUILayout.HorizontalSlider(settingsData.fl_ItemDistanceLimit, 50, 500, Array.Empty<GUILayoutOption>());
@@ -921,9 +928,16 @@ namespace ProjectApparatus
             );
         }
 
+        public bool HasLineOfSightToPosition(Vector3 pos)
+        {
+            return !Physics.Linecast(Instance.localPlayer.playerEye.transform.position, pos, StartOfRound.Instance.collidersAndRoomMaskAndDefault);
+        }
+
         public void AimbotUpdate()
         {
-            if (PAUtils.GetAsyncKeyState((int)Keys.RButton) == 0) return;
+            if (PAUtils.GetAsyncKeyState((int)Keys.RButton) == 0) { Settings.Instance.settingsData.b_isAimbotting = false; return; }
+
+            Settings.Instance.settingsData.b_isAimbotting = true;
 
             var localPlayerDirection = Instance.localPlayer.gameplayCamera.transform.forward;
             var enemiesOnScreen = Instance.enemies.Where(enemyAI => enemyAI != null && enemyAI.eye != null && enemyAI.enemyType != null && !enemyAI.isEnemyDead);
@@ -940,11 +954,17 @@ namespace ProjectApparatus
                 return angleDifferenceToMinEnemy < angleDifferenceToNextEnemy ? minEnemy : nextEnemy;
             });
 
+            // Check if the player has a clear line of sight to the enemy
+            if (!HasLineOfSightToPosition(closestEnemyOnScreen.eye.transform.position) && settingsData.b_WallCheck)
+            {
+                return;
+            }
+
             // Debug information about the closest enemy on screen
             Debug.LogError("Closest Enemy On Screen: " + closestEnemyOnScreen.name);
-            Debug.LogError("Enemy Position On Screen (X, Y, Z): " + closestEnemyOnScreen.transform.position);
+            Debug.LogError("Enemy Position On Screen (X, Y, Z): " + closestEnemyOnScreen.eye.transform.position);
 
-            Vector3 targetPos = closestEnemyOnScreen.transform.position;
+            Vector3 targetPos = closestEnemyOnScreen.eye.transform.position;
             Vector3 direction = targetPos - Instance.localPlayer.gameplayCamera.transform.position;
 
             Quaternion targetRotation = Quaternion.LookRotation(direction);
@@ -1274,7 +1294,12 @@ namespace ProjectApparatus
             val.GetComponent<GrabbableObject>().SetScrapValue((int)value);
         }
 
-        private LineRenderer lineRenderer;
+        public void DoomMode()
+        {
+            settingsData.b_AimbotEnabled = true;
+            settingsData.b_WallCheck = true;
+            SpawnItem("Shotgun");
+        }
 
         public void Update()
         {
