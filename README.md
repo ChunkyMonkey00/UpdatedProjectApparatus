@@ -22,7 +22,8 @@ For the prebuilt release, go to releases and download the zip file.
 - God mode fix
 - Allow player to look down all the way
 - Add spawn item
-- Add aimbot (work in progress)
+- Add aimbot (finished)
+- Wall check (should snap to enemies thru walls?)
 - Add no button interaction
 - Allow use of ship monitor from anywhere
 - Instant interaction fire exit glitch fixed
