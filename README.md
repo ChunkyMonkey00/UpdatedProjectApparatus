@@ -3,6 +3,8 @@
 Just an updated version of [Project Apparatus](https://github.com/KaylinOwO/Project-Apparatus/tree/main/ProjectApparatus).
 Find the UC version here: [<Release> Project Apparatus Updated ](https://www.unknowncheats.me/forum/lethal-company/620315-project-apparatus-updated.html).
 
+#### **Proudly the Only Cheat with a Working Aimbot!** 🎮🚀
+
 ## Instructions:
 
 Extract the zip ANYWHERE, go to releases > inject.bat, and run that file while Lethal Company is playing.
