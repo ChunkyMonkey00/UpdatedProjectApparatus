@@ -5,7 +5,7 @@ Find the UC version here: [<Release> Project Apparatus Updated ](https://www.unk
 
 ## Instructions:
 
-Download the prebuilt zip if you don't know how to build a DLL. Extract the zip ANYWHERE, go to releases > inject.bat, and run that file while Lethal Company is playing.
+Extract the zip ANYWHERE, go to releases > inject.bat, and run that file while Lethal Company is playing.
 
 #### NOTE: You will need to turn off Windows Defender if you download the prebuilt. This is because Windows checks signatures of .exe and .dll files, and these aren't signed.
 
@@ -13,9 +13,7 @@ Download the prebuilt zip if you don't know how to build a DLL. Extract the zip 
 
 ## PREBUILT:
 
-For the prebuilt release, go to releases and download the zip file.
-
-- As Project Apparatus isn't very clear on how to use, here are my instructions:
+For the prebuilt release, go to releases and download the zip file. Download the prebuilt zip if you don't know how to build a DLL. 
 
 ## Features:
 
