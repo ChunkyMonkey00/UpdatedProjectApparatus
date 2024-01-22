@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using GameNetcodeStuff;
 using System.IO;
@@ -60,6 +60,8 @@ namespace ProjectApparatus
         public bool b_AimbotEnabled = false;
         public bool b_bhop = true;
         public float i_bhopSprint = 3f;
+        public bool b_isAimbotting = false;
+        public bool b_WallCheck = true;
 
         /* Misc */
         public bool b_FreeShit = false;
