@@ -22,6 +22,12 @@ using Event = UnityEngine.Event;
 using Color = UnityEngine.Color;
 using static ProjectApparatus.Features.Thirdperson;
 using JetBrains.Annotations;
+using System.Reflection;
+using System.Threading.Tasks;
+using System.Collections;
+using System.Text.RegularExpressions;
+using Random = UnityEngine.Random;
+using UnityEngine.UI;
 
 namespace ProjectApparatus
 {
@@ -301,6 +307,8 @@ namespace ProjectApparatus
                 UI.Checkbox(ref settingsData.b_AlwaysShowClock, "Always Show Clock", "Displays the clock even when you are in the facility.");
                 UI.Checkbox(ref settingsData.b_FreeShit, "Free Store", "Store is now free!");
                 UI.Checkbox(ref settingsData.b_noButtonCooldown, "No button cooldown", "Teleporters no longer have cooldowns");
+                UI.Checkbox(ref settingsData.b_inspectAnything, "Inspect anything", "You can inspect any object");
+                UI.Checkbox(ref settingsData.b_playSound, "Custom sound", "Play custom sound when pocketting item");
 
                 GUILayout.Label($"Player to teleport: {StartOfRound.Instance.mapScreen.targetedPlayer.playerUsername}", new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold });
 
@@ -342,6 +350,7 @@ namespace ProjectApparatus
                     if (itemName == "Not host")
                     {
                         PAUtils.SendChatMessage($"Can't spawn as client.");
+                        return;
                     }
 
                     if (itemName == "true")
@@ -349,7 +358,59 @@ namespace ProjectApparatus
                         PAUtils.SendChatMessage($"Item <{settingsData.str_SpawnMessage}> spawned.");
                     } else
                     {
-                        PAUtils.SendChatMessage($"Trouble spawning <{settingsData.str_SpawnMessage}>.. Did you mean {itemName}");
+                        PAUtils.SendChatMessage($"Trouble spawning <{settingsData.str_SpawnMessage}>.. Did you mean {itemName}?");
+                    }
+                });
+
+                GUILayout.Label("ARGS: name, coords (here for your position), count, outside?");
+                GUILayout.Label("Example: Flowerman, 56.24.10, 1, false");
+                settingsData.str_ESpawnMessage = GUILayout.TextField(settingsData.str_ESpawnMessage, Array.Empty<GUILayoutOption>());
+                UI.Button("Spawn Enemy", "Spawn an enemy by name", () =>
+                {
+                    string input = settingsData.str_ESpawnMessage;
+                    string[] splitInput = input.Split(new string[] { ", " }, StringSplitOptions.None);
+                    Vector3 position;
+                    if (splitInput[1] == "here")
+                    {
+                        position = Instance.localPlayer.transform.position;
+                    }
+                    else
+                    {
+                        string[] coordinates = splitInput[1].Split('.');
+                        if (coordinates.Length == 3 && float.TryParse(coordinates[0], out float x) && float.TryParse(coordinates[1], out float y) && float.TryParse(coordinates[2], out float z))
+                        {
+                            position = new Vector3(x, y, z);
+                        }
+                        else
+                        {
+                            throw new ArgumentException("Invalid Vector3 format");
+                        }
+                    }
+                    int number;
+                    if (Int32.TryParse(splitInput[2], out number))
+                    {
+                        splitInput[2] = number.ToString();
+                    }
+                    bool boolean;
+                    if (Boolean.TryParse(splitInput[3], out boolean))
+                    {
+                        splitInput[3] = boolean.ToString();
+                    }
+
+                    string itemName = SpawnEnemyManager(splitInput[0], position, number, boolean);
+                    if (itemName == "Not host")
+                    {
+                        PAUtils.SendChatMessage($"Can't spawn as client.");
+                        return;
+                    }
+
+                    if (itemName == "true")
+                    {
+                        PAUtils.SendChatMessage($"<{splitInput[0]}> spawned.");
+                    }
+                    else
+                    {
+                        PAUtils.SendChatMessage($"Trouble spawning <{settingsData.str_ESpawnMessage}>.. Did you mean {itemName}");
                     }
                 });
 
@@ -933,16 +994,27 @@ namespace ProjectApparatus
             return !Physics.Linecast(Instance.localPlayer.playerEye.transform.position, pos, StartOfRound.Instance.collidersAndRoomMaskAndDefault);
         }
 
+        public void SwitchEnemySnap()
+        {
+            var enemiesOnScreen = Instance.enemies.Where(enemyAI => enemyAI != null && enemyAI.eye != null && enemyAI.enemyType != null && !enemyAI.isEnemyDead);
+
+            enemySnap++;
+            if(enemySnap > enemiesOnScreen.Count())
+            {
+                enemySnap = 0;
+            }
+
+            if (enemiesOnScreen.Count() == 0) enemySnap = -1;
+        }
+
         public void AimbotUpdate()
         {
-            if (PAUtils.GetAsyncKeyState((int)Keys.RButton) == 0) { Settings.Instance.settingsData.b_isAimbotting = false; return; }
-
             Settings.Instance.settingsData.b_isAimbotting = true;
 
             var localPlayerDirection = Instance.localPlayer.gameplayCamera.transform.forward;
             var enemiesOnScreen = Instance.enemies.Where(enemyAI => enemyAI != null && enemyAI.eye != null && enemyAI.enemyType != null && !enemyAI.isEnemyDead);
 
-            if (!enemiesOnScreen.Any()) { Debug.LogError("No enemy found!"); return; }
+            if (!enemiesOnScreen.Any()) { Debug.LogError("No enemy found!"); ResetCam();  return; }
 
             var closestEnemyOnScreen = enemiesOnScreen.Aggregate((minEnemy, nextEnemy) =>
             {
@@ -954,10 +1026,46 @@ namespace ProjectApparatus
                 return angleDifferenceToMinEnemy < angleDifferenceToNextEnemy ? minEnemy : nextEnemy;
             });
 
+            if (!snapClosest)
+            {
+                var enemiesOnScreenList = enemiesOnScreen.ToList();
+                if (enemySnap >= 0 && enemySnap < enemiesOnScreenList.Count)
+                {
+                    closestEnemyOnScreen = enemiesOnScreenList[enemySnap];
+                }
+            }
+
             // Check if the player has a clear line of sight to the enemy
             if (!HasLineOfSightToPosition(closestEnemyOnScreen.eye.transform.position) && settingsData.b_WallCheck)
             {
                 return;
+            }
+
+            if (PAUtils.GetAsyncKeyState((int)Keys.E) != 0 && !Instance.localPlayer.isInHangarShipRoom && killTimer > 0.15f)
+            {
+                killTimer = 0f;
+                if(closestEnemyOnScreen.GetComponent<BlobAI>() || closestEnemyOnScreen.GetComponent<ForestGiantAI>() || closestEnemyOnScreen.GetComponent<PufferAI>() || closestEnemyOnScreen.GetComponent<JesterAI>())
+                {
+                    closestEnemyOnScreen.KillEnemyServerRpc(true);
+                } else
+                {
+                    if (closestEnemyOnScreen.GetComponent<DressGirlAI>())
+                    {
+                        //Cant do anything :(
+                    }
+                    else
+                    {
+                        closestEnemyOnScreen.KillEnemyServerRpc(false);
+                    }
+                }
+                GameObject shottyval = SpawnClientItem("Shotgun");
+                ShotgunItem shotty = shottyval.GetComponent<ShotgunItem>();
+                shottyval.transform.position = Instance.localPlayer.gameplayCamera.transform.position;
+                shottyval.transform.rotation = Instance.localPlayer.gameplayCamera.transform.rotation;
+                RoundManager.PlayRandomClip(shotty.gunShootAudio, shotty.gunShootSFX, true, 1f, 1840);
+                shotty.gunShootParticle.Play(true);
+                Wait(() => { shottyval.transform.position = Vector3.zero; }, 0.5f);
+                Wait(() => { FullDestroy(shottyval); }, 2f);
             }
 
             // Debug information about the closest enemy on screen
@@ -984,6 +1092,104 @@ namespace ProjectApparatus
 
             // Set the player's rotation directly
             Instance.localPlayer.transform.rotation = desiredRotation;
+        }
+
+        public static List<EnemyType> GetEnemyTypes()
+        {
+            List<EnemyType> types = new List<EnemyType>();
+
+            if (!StartOfRound.Instance)
+            {
+                return types;
+            }
+
+            Action<List<SpawnableEnemyWithRarity>> processEnemies = (enemies) =>
+            {
+                foreach (var enemy in enemies)
+                {
+                    if (!types.Contains(enemy.enemyType))
+                    {
+                        types.Add(enemy.enemyType);
+                    }
+                }
+            };
+
+            foreach (SelectableLevel selectableLevel in StartOfRound.Instance.levels)
+            {
+                processEnemies(selectableLevel.Enemies);
+                processEnemies(selectableLevel.DaytimeEnemies);
+                processEnemies(selectableLevel.OutsideEnemies);
+            }
+
+            return types;
+        }
+
+        public static object CallMethod(object instance, string methodName, BindingFlags bindingFlags, params object[] parameters)
+        {
+            MethodInfo method = instance.GetType().GetMethod(methodName, bindingFlags);
+            if (method != null)
+            {
+                return method.Invoke(instance, parameters);
+            }
+            return null;
+        }
+
+        public static void SpawnEnemy(EnemyType type, int num, bool outside, Vector3 spawnPos)
+        {
+            spawnPos = spawnPos == default ? Instance.localPlayer.transform.position : spawnPos;
+
+            SelectableLevel currentLevel = StartOfRound.Instance.currentLevel;
+            PlayerControllerB localPlayerController = GameNetworkManager.Instance.localPlayerController;
+            currentLevel.maxEnemyPowerCount = int.MaxValue;
+            GameObject[] array = outside ? RoundManager.Instance.outsideAINodes : RoundManager.Instance.insideAINodes;
+            for (int i = 0; i < num; i++)
+            {
+                GameObject gameObject = array[Random.Range(0, array.Length)];
+                RoundManager.Instance.SpawnEnemyGameObject(spawnPos, 0f, -1, type);
+            }
+        }
+
+        private string SpawnEnemyManager(String name, Vector3 spawnPos, int count = 1, bool outside = false)
+        {
+            if (!Instance.localPlayer.IsHost) return "Not host";
+
+            AllItemsList allItemsList = StartOfRound.Instance.allItemsList;
+            float closestMatchScore = float.MaxValue;
+            string closestMatch = null;
+
+            foreach (EnemyType enemyType in GetEnemyTypes())
+            {
+                string currentItemName = enemyType.enemyName;
+                int matchScore = LevenshteinDistance.Calculate(name, currentItemName);
+
+                if (matchScore < closestMatchScore)
+                {
+                    closestMatchScore = matchScore;
+                    closestMatch = currentItemName;
+                }
+
+                if (enemyType.enemyName == name)
+                {
+
+                    try
+                    {
+                        SpawnEnemy(enemyType, count, outside, spawnPos);
+                        return "true";
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError(e.ToString());
+                        return closestMatch;
+                    }
+                }
+            }
+
+            // Log the closest match before returning false
+            Debug.Log($"No exact match found for '{name}'. Closest match: '{closestMatch}'");
+
+            /* Make autocorrect spawn here */
+            return closestMatch;
+
         }
 
         private void TriggerButton(InteractTrigger trigger)
@@ -1287,6 +1493,56 @@ namespace ProjectApparatus
             return closestMatch;
         }
 
+        public GameObject SpawnClientItem(string name)
+        {
+
+            AllItemsList allItemsList = StartOfRound.Instance.allItemsList;
+            float closestMatchScore = float.MaxValue;
+            string closestMatch = null;
+
+            for (int i = 0; i < allItemsList.itemsList.Count; i++)
+            {
+                string currentItemName = allItemsList.itemsList[i].itemName;
+                int matchScore = LevenshteinDistance.Calculate(name, currentItemName);
+
+                if (matchScore < closestMatchScore)
+                {
+                    closestMatchScore = matchScore;
+                    closestMatch = currentItemName;
+                }
+
+                if (currentItemName == name)
+                {
+                        GameObject val = Object.Instantiate<GameObject>(StartOfRound.Instance.allItemsList.itemsList[i].spawnPrefab, Instance.localPlayer.transform.position, Quaternion.identity);
+                        val.GetComponent<GrabbableObject>().fallTime = 0f;
+                        val.AddComponent<ScanNodeProperties>().scrapValue = StartOfRound.Instance.allItemsList.itemsList[i].maxValue;
+                        val.AddComponent<ShotgunItem>();
+                        return val;
+                }
+            }
+            return new GameObject();
+        }
+
+        public void FullDestroy(GameObject val)
+        {
+            MeshRenderer[] componentsInChildren = val.GetComponentsInChildren<MeshRenderer>();
+            for (int i = 0; i < componentsInChildren.Length; i++)
+            {
+                Object.Destroy(componentsInChildren[i]);
+            }
+            Collider[] componentsInChildren2 = val.GetComponentsInChildren<Collider>();
+            for (int j = 0; j < componentsInChildren2.Length; j++)
+            {
+                Object.Destroy(componentsInChildren2[j]);
+            }
+            try
+            {
+                Destroy(val);
+            } catch(Exception e)
+            {
+            }
+        }
+
         public void SetItemValue(float value)
         {
             //Get currently held item here
@@ -1303,12 +1559,15 @@ namespace ProjectApparatus
 
         public void Update()
         {
-            CooldownCheck();
+            killTimer += Time.deltaTime;
 
+            CooldownCheck();
 
             if (PAUtils.GetAsyncKeyState((int)Keys.LButton) == 0 && settingsData.holdingMouse) settingsData.holdingMouse = false;
 
-            if ((PAUtils.GetAsyncKeyState((int)Keys.Insert) & 1) != 0)
+            if (PAUtils.GetAsyncKeyState((int)Keys.LButton) == 0 && settingsData.holdingMouseAC) settingsData.holdingMouseAC = false;
+
+                if ((PAUtils.GetAsyncKeyState((int)Keys.Insert) & 1) != 0)
             {
                 Settings.Instance.SaveSettings();
                 Settings.Instance.b_isMenuOpen = !Settings.Instance.b_isMenuOpen;
@@ -1356,7 +1615,26 @@ namespace ProjectApparatus
             if (settingsData.b_AnonChatSpam)
                 PAUtils.SendChatMessage(settingsData.str_ChatMessage);
 
-            if(settingsData.b_AimbotEnabled) AimbotUpdate();
+            if (settingsData.b_AimbotEnabled && PAUtils.GetAsyncKeyState((int)Keys.RButton) == 0) 
+            {
+                settingsData.b_isAimbotting = false;
+                snapClosest = true;
+            }
+            else
+            {
+                if (!settingsData.holdingMouseAC)
+                {
+                    settingsData.b_isAimbotting = true;
+                    AimbotUpdate();
+                    settingsData.holdingMouseAC = true;
+                }
+            }
+
+            if(settingsData.b_isAimbotting && PAUtils.GetAsyncKeyState((int)Keys.LButton) != 0)
+            {
+                SwitchEnemySnap();
+                snapClosest = false;
+            }
 
             if (cameraObject==null) topRightCamera = false;
             if (topRightCamera) TopRightCameraUpdate();
@@ -1369,7 +1647,23 @@ namespace ProjectApparatus
             }
         }
 
+
+        public void Wait(Action callback, float delayInSeconds)
+        {
+            StartCoroutine(ExecuteAfterDelay(callback, delayInSeconds));
+        }
+
+        private IEnumerator ExecuteAfterDelay(Action callback, float delayInSeconds)
+        {
+            yield return new WaitForSeconds(delayInSeconds);
+            callback?.Invoke();
+        }
+
         private Vector2 scrollPos;
         private static Hacks instance;
+
+        public int enemySnap;
+        public bool snapClosest = true;
+        public float killTimer = 0f;
     }
 }

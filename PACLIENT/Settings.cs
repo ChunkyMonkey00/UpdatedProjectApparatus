@@ -15,6 +15,7 @@ namespace ProjectApparatus
         /* System usable */
         public bool switchingCam = false;
         public bool holdingMouse = false;
+        public bool holdingMouseAC = false;
 
         /* ESP */
         public bool b_EnableESP;
@@ -62,6 +63,7 @@ namespace ProjectApparatus
         public float i_bhopSprint = 3f;
         public bool b_isAimbotting = false;
         public bool b_WallCheck = true;
+        public bool b_Invisible = false;
 
         /* Misc */
         public bool b_FreeShit = false;
@@ -80,10 +82,13 @@ namespace ProjectApparatus
         public string str_TerminalSignal = "Hello World!";
         public string str_ChatMessage = "Hello World!";
         public string str_SpawnMessage = "";
+        public string str_ESpawnMessage = "";
         public string str_MoneyToGive = "0";
         public string str_QuotaFulfilled = "0", str_Quota = "130";
         public bool b_noButtonCooldown = false;
         public string str_ItemVal = "0";
+        public bool b_inspectAnything = false;
+        public bool b_playSound = false;
 
         /* Graphics */
         public bool b_DisableFog, b_DisableBloom, b_DisableDepthOfField, b_DisableVignette, b_DisableFilmGrain, b_DisableExposure;

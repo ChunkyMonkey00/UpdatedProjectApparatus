@@ -37,6 +37,23 @@ namespace ProjectApparatus
         }
     }
 
+    [HarmonyPatch(typeof(GrabbableObject), "InspectItem")]
+    public class InspectAnything_Patch
+    {
+        private static bool Prefix(GrabbableObject __instance)
+        {
+            if(Settings.Instance.settingsData.b_inspectAnything)
+            {
+                __instance.playerHeldBy.IsInspectingItem = !__instance.playerHeldBy.IsInspectingItem;
+                HUDManager.Instance.SetNearDepthOfFieldEnabled(!__instance.playerHeldBy.IsInspectingItem);
+
+                return false;
+            }
+            return false;
+        }
+    }
+
+
     [HarmonyPatch(typeof(PlayerControllerB), "Update")]
     public class PlayerControllerB_Update_Patch
     {
@@ -221,6 +238,8 @@ namespace ProjectApparatus
             return true;
         }
     }
+
+
 
     /*
     [HarmonyPatch(typeof(GameNetworkManager), "LeaveLobbyAtGameStart")]
