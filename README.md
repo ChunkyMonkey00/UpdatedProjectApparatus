@@ -23,6 +23,8 @@ For the prebuilt release, go to releases and download the zip file. Download the
 - Allow player to look down all the way
 - Add spawn item
 - Add aimbot (finished)
+- Aimbot can now target players or enemies
+- Aimbot press "e" while snapping to kill enemy/player.
 - Wall check (should snap to enemies thru walls?)
 - Add no button interaction
 - Allow use of ship monitor from anywhere
