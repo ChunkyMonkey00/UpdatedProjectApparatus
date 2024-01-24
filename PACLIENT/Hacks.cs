@@ -1010,7 +1010,7 @@ namespace ProjectApparatus
 
         public void SwitchPlayerSnap()
         {
-            var enemiesOnScreen = Instance.enemies.Where(enemyAI => enemyAI != null && enemyAI.eye != null && enemyAI.enemyType != null && !enemyAI.isEnemyDead);
+            var enemiesOnScreen = FindObjectsOfType<PlayerControllerB>().Where(player => player != null && player != Instance.localPlayer).ToArray();
 
             playerSnap++;
             if (playerSnap > enemiesOnScreen.Count())
