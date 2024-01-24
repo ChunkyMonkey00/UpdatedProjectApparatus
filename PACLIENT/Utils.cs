@@ -141,6 +141,14 @@ namespace ProjectApparatus
             return bReturn;
         }
 
+        public static void Dropdown(string[] options, ref string selectedOption)
+        {
+            int selectedIndex = Array.IndexOf(options, selectedOption);
+            selectedIndex = GUILayout.SelectionGrid(selectedIndex, options, options.Length, GUILayout.ExpandWidth(true));
+            selectedOption = options[selectedIndex];
+        }
+
+
         public static void Tab<T>(string strTabName, ref T iTab, T iTabEle, bool bCenter = false)
         {
             if (bCenter ? CenteredButton(strTabName) : GUILayout.Button(strTabName))

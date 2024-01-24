@@ -221,6 +221,30 @@ namespace ProjectApparatus
         }
     }
 
+    [HarmonyPatch(typeof(ShotgunItem))]
+    [HarmonyPatch("ShootGun")]
+    public static class FriendlyFire_Aimbot_Patch
+    {
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codes = new List<CodeInstruction>(instructions);
+            for (var i = 0; i < codes.Count; i++)
+            {
+                if (Settings.Instance.settingsData.b_isAimbotting && Settings.Instance.settingsData.str_AimbotMethod == "Enemy")
+                {
+                    if (codes[i].opcode == OpCodes.Ldarg_S && codes[i].operand is short argNumber && argNumber == 2)
+                    {
+                        // Found the argument that we want to remove
+                        codes.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
+            return codes.AsEnumerable();
+        }
+    }
+
+
     [HarmonyPatch(typeof(PlayerControllerB), "Jump_performed")]
     public class Jump_performed_Patch
     {

@@ -511,6 +511,7 @@ namespace ProjectApparatus
                 UI.Checkbox(ref settingsData.b_DisplayDistance, "Show Distance", "Shows the distance between you and the entity.");
                 UI.Checkbox(ref settingsData.b_DisplaySpeaking, "Show Is Speaking", "Shows if the player is speaking.");
                 UI.Checkbox(ref settingsData.b_AimbotEnabled, "Aimbot", "Proudly finished! Snaps to nearest enemy on screen");
+                UI.Dropdown(["Enemy", "Player"], ref settingsData.str_AimbotMethod);
                 UI.Checkbox(ref settingsData.b_WallCheck, "Wall check", "Should snap through walls?");
 
                 UI.Checkbox(ref settingsData.b_ItemDistanceLimit, "Item Distance Limit (" + Mathf.RoundToInt(settingsData.fl_ItemDistanceLimit) + ")", "Toggle to set the item distance limit.");
@@ -999,12 +1000,61 @@ namespace ProjectApparatus
             var enemiesOnScreen = Instance.enemies.Where(enemyAI => enemyAI != null && enemyAI.eye != null && enemyAI.enemyType != null && !enemyAI.isEnemyDead);
 
             enemySnap++;
-            if(enemySnap > enemiesOnScreen.Count())
+            if (enemySnap > enemiesOnScreen.Count())
             {
                 enemySnap = 0;
             }
 
             if (enemiesOnScreen.Count() == 0) enemySnap = -1;
+        }
+
+        public void SwitchPlayerSnap()
+        {
+            var enemiesOnScreen = Instance.enemies.Where(enemyAI => enemyAI != null && enemyAI.eye != null && enemyAI.enemyType != null && !enemyAI.isEnemyDead);
+
+            playerSnap++;
+            if (playerSnap > enemiesOnScreen.Count())
+            {
+                playerSnap = 0;
+            }
+
+            if (enemiesOnScreen.Count() == 0) playerSnap = -1;
+        }
+
+        public void PlayerTargetUpdate()
+        {
+            Settings.Instance.settingsData.b_isAimbotting = true;
+
+            var localPlayerDirection = Instance.localPlayer.gameplayCamera.transform.forward;
+            var playerObjects = FindObjectsOfType<PlayerControllerB>().Where(player => player != null && player != Instance.localPlayer).ToArray();
+
+            if (!playerObjects.Any()) { Debug.LogError("No player found!"); ResetCam(); return; }
+
+            var closestPlayer = playerObjects.Aggregate((minPlayer, nextPlayer) =>
+            {
+                Vector3 directionToMinPlayer = minPlayer.gameplayCamera.transform.position - Instance.localPlayer.gameplayCamera.transform.position;
+                Vector3 directionToNextPlayer = nextPlayer.gameplayCamera.transform.position - Instance.localPlayer.gameplayCamera.transform.position;
+                float angleDifferenceToMinPlayer = Vector3.Angle(localPlayerDirection, directionToMinPlayer);
+                float angleDifferenceToNextPlayer = Vector3.Angle(localPlayerDirection, directionToNextPlayer);
+
+                return angleDifferenceToMinPlayer < angleDifferenceToNextPlayer ? minPlayer : nextPlayer;
+            });
+
+            if (!snapClosest)
+            {
+                var enemiesOnScreenList = playerObjects.ToList();
+                if (playerSnap >= 0 && playerSnap < enemiesOnScreenList.Count)
+                {
+                    closestPlayer = enemiesOnScreenList[playerSnap];
+                }
+            }
+
+            SnapTo(closestPlayer.gameplayCamera.transform.position);
+
+            if (PAUtils.GetAsyncKeyState((int)Keys.E) != 0 && !Instance.localPlayer.isInHangarShipRoom && killTimer > 0.15f)
+            {
+                killPlayerAimbot(closestPlayer);
+            }
         }
 
         public void AimbotUpdate()
@@ -1014,7 +1064,7 @@ namespace ProjectApparatus
             var localPlayerDirection = Instance.localPlayer.gameplayCamera.transform.forward;
             var enemiesOnScreen = Instance.enemies.Where(enemyAI => enemyAI != null && enemyAI.eye != null && enemyAI.enemyType != null && !enemyAI.isEnemyDead);
 
-            if (!enemiesOnScreen.Any()) { Debug.LogError("No enemy found!"); ResetCam();  return; }
+            if (!enemiesOnScreen.Any()) { Debug.LogError("No enemy found!"); ResetCam(); return; }
 
             var closestEnemyOnScreen = enemiesOnScreen.Aggregate((minEnemy, nextEnemy) =>
             {
@@ -1041,23 +1091,38 @@ namespace ProjectApparatus
                 return;
             }
 
+            SnapTo(closestEnemyOnScreen.eye.transform.position);
+
             if (PAUtils.GetAsyncKeyState((int)Keys.E) != 0 && !Instance.localPlayer.isInHangarShipRoom && killTimer > 0.15f)
             {
-                killTimer = 0f;
-                if(closestEnemyOnScreen.GetComponent<BlobAI>() || closestEnemyOnScreen.GetComponent<ForestGiantAI>() || closestEnemyOnScreen.GetComponent<PufferAI>() || closestEnemyOnScreen.GetComponent<JesterAI>())
+                killEnemyAimbot(closestEnemyOnScreen);
+            }
+        }
+
+        public void killPlayerAimbot(PlayerControllerB player) {
+            player.DamagePlayerFromOtherClientServerRpc(player.health + 1, new Vector3(900, 900, 900), 0);
+        }
+
+        public void killEnemyAimbot(EnemyAI closestEnemyOnScreen)
+        {
+            killTimer = 0f;
+            if (closestEnemyOnScreen.GetComponent<BlobAI>() || closestEnemyOnScreen.GetComponent<ForestGiantAI>() || closestEnemyOnScreen.GetComponent<PufferAI>() || closestEnemyOnScreen.GetComponent<JesterAI>())
+            {
+                closestEnemyOnScreen.KillEnemyServerRpc(true);
+            }
+            else
+            {
+                if (closestEnemyOnScreen.GetComponent<DressGirlAI>())
                 {
-                    closestEnemyOnScreen.KillEnemyServerRpc(true);
-                } else
-                {
-                    if (closestEnemyOnScreen.GetComponent<DressGirlAI>())
-                    {
-                        //Cant do anything :(
-                    }
-                    else
-                    {
-                        closestEnemyOnScreen.KillEnemyServerRpc(false);
-                    }
+                    //Cant do anything :(
                 }
+                else
+                {
+                    closestEnemyOnScreen.KillEnemyServerRpc(false);
+                }
+            }
+            if (Instance.localPlayer.currentlyHeldObject.itemProperties.itemName != "Shotgun")
+            {
                 GameObject shottyval = SpawnClientItem("Shotgun");
                 ShotgunItem shotty = shottyval.GetComponent<ShotgunItem>();
                 shottyval.transform.position = Instance.localPlayer.gameplayCamera.transform.position;
@@ -1067,13 +1132,11 @@ namespace ProjectApparatus
                 Wait(() => { shottyval.transform.position = Vector3.zero; }, 0.5f);
                 Wait(() => { FullDestroy(shottyval); }, 2f);
             }
+        }
 
-            // Debug information about the closest enemy on screen
-            Debug.LogError("Closest Enemy On Screen: " + closestEnemyOnScreen.name);
-            Debug.LogError("Enemy Position On Screen (X, Y, Z): " + closestEnemyOnScreen.eye.transform.position);
-
-            Vector3 targetPos = closestEnemyOnScreen.eye.transform.position;
-            Vector3 direction = targetPos - Instance.localPlayer.gameplayCamera.transform.position;
+        public void SnapTo(Vector3 targetPosition)
+        {
+            Vector3 direction = targetPosition - Instance.localPlayer.gameplayCamera.transform.position;
 
             Quaternion targetRotation = Quaternion.LookRotation(direction);
 
@@ -1081,14 +1144,14 @@ namespace ProjectApparatus
             Instance.localPlayer.gameplayCamera.transform.rotation = targetRotation;
 
             // Calculate the desired mouseY movement based on the y rotation
-            float mouseYMovement = -targetRotation.eulerAngles.x;  // Adjust as needed
+            float mouseYMovement = -targetRotation.eulerAngles.x; // Adjust as needed
 
             // Set cursor position to simulate mouse movement
             MouseSimulator.SetCursorPos(0, (int)mouseYMovement);
 
             Quaternion cameraRotation = Instance.localPlayer.gameplayCamera.transform.rotation;
             Vector3 eulerRotation = cameraRotation.eulerAngles;
-            Quaternion desiredRotation = Quaternion.Euler(0f, eulerRotation.y, 0f);  // Adjust as needed
+            Quaternion desiredRotation = Quaternion.Euler(0f, eulerRotation.y, 0f); // Adjust as needed
 
             // Set the player's rotation directly
             Instance.localPlayer.transform.rotation = desiredRotation;
@@ -1625,14 +1688,21 @@ namespace ProjectApparatus
                 if (!settingsData.holdingMouseAC)
                 {
                     settingsData.b_isAimbotting = true;
-                    AimbotUpdate();
+                    if (settingsData.str_AimbotMethod == "Enemy") AimbotUpdate();
+                    if (settingsData.str_AimbotMethod == "Player") PlayerTargetUpdate();
                     settingsData.holdingMouseAC = true;
                 }
             }
 
             if(settingsData.b_isAimbotting && PAUtils.GetAsyncKeyState((int)Keys.LButton) != 0)
             {
-                SwitchEnemySnap();
+                if (settingsData.str_AimbotMethod == "Enemy")
+                {
+                    SwitchEnemySnap();
+                } else
+                {
+                    SwitchPlayerSnap();
+                }
                 snapClosest = false;
             }
 
@@ -1663,6 +1733,7 @@ namespace ProjectApparatus
         private static Hacks instance;
 
         public int enemySnap;
+        public int playerSnap;
         public bool snapClosest = true;
         public float killTimer = 0f;
     }

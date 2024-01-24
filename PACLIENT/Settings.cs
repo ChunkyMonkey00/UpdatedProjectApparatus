@@ -63,7 +63,8 @@ namespace ProjectApparatus
         public float i_bhopSprint = 3f;
         public bool b_isAimbotting = false;
         public bool b_WallCheck = true;
-        public bool b_Invisible = false;
+        public string str_AimbotMethod = "Enemy";
+
 
         /* Misc */
         public bool b_FreeShit = false;
