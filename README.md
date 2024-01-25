@@ -24,6 +24,7 @@ For the prebuilt release, go to releases and download the zip file. Download the
 - Add spawn item
 - Add aimbot (finished)
 - Aimbot can now target players or enemies
+- Aimbot can now target items
 - Aimbot press "e" while snapping to kill enemy/player.
 - Wall check (should snap to enemies thru walls?)
 - Add no button interaction
@@ -38,6 +39,8 @@ For the prebuilt release, go to releases and download the zip file. Download the
 - Set item value option
 - Selected player on monitor now displayed on GUI
 - Harmony Patches updated for v49 of Lethal Company
+- HELLA fixes for aimbot. System might be reworked soon...
+- Aimbot wont move mouse or work when lethalcompany isnt focused.
 
 Among other quality-of-life fixes.
 
