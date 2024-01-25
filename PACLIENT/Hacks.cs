@@ -1762,14 +1762,14 @@ namespace ProjectApparatus
             if (settingsData.b_AnonChatSpam)
                 PAUtils.SendChatMessage(settingsData.str_ChatMessage);
 
-            if (settingsData.b_AimbotEnabled && PAUtils.GetAsyncKeyState((int)Keys.RButton) == 0)
+            if (PAUtils.GetAsyncKeyState((int)Keys.RButton) == 0)
             {
                 settingsData.b_isAimbotting = false;
                 snapClosest = true;
             }
             else
             {
-                if (!settingsData.holdingMouseAC)
+                if (!settingsData.holdingMouseAC && settingsData.b_AimbotEnabled)
                 {
                     settingsData.b_isAimbotting = true;
                     if (settingsData.str_AimbotMethod == "Enemy") AimbotUpdate();
