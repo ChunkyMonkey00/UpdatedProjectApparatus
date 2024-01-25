@@ -927,7 +927,7 @@ namespace ProjectApparatus
         [HarmonyPatch(typeof(PlayerControllerB), "CalculateNormalLookingInput")]
         private static bool Prefix()
         {
-            if (Settings.Instance.settingsData.b_isAimbotting)
+            if (Settings.Instance.settingsData.b_AimbotEnabled)
             {
                 return false;
             }

@@ -307,12 +307,6 @@ namespace ProjectApparatus
 
                 GUILayout.Label($"Player to teleport: {StartOfRound.Instance.mapScreen.targetedPlayer.playerUsername}", new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold });
 
-                UI.Button("Teleport to ship", "Teleports current player on monitor using the teleporter.", () =>
-                {
-                    PlayerControllerB playerToBeamUp = StartOfRound.Instance.mapScreen.targetedPlayer;
-                    BtnTeleport();
-                });
-
                 UI.Button("Inverse Teleport", "Use inverse teleport", () =>
                 {
                     BtnInverseTeleport();
@@ -571,10 +565,6 @@ namespace ProjectApparatus
                                 }
                             }
                         });
-                        UI.Button("Teleport Player To Ship", "Teleports the selected into the ship. (Host only)", () =>
-                        {
-                            Instance.shipTeleporter.TeleportPlayerOutServerRpc((int)selectedPlayer.playerClientId, Instance.shipRoom.transform.position);
-                        });
 
                         UI.Button("Aggro Enemies", "Makes enemies target the selected player.\nDoesn't work on most monsters, works best on Crawlers & Spiders.", () =>
                         {
@@ -750,6 +740,12 @@ namespace ProjectApparatus
                     SwitchCam();
                 });
                 GUILayout.EndHorizontal();
+
+                UI.Button("Teleport to ship", "Teleports current player on monitor using the teleporter.", () =>
+                {
+                    PlayerControllerB playerToBeamUp = StartOfRound.Instance.mapScreen.targetedPlayer;
+                    BtnTeleport();
+                });
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Thirdperson");
