@@ -17,6 +17,9 @@ namespace ProjectApparatus
         public bool holdingMouse = false;
         public bool holdingMouseAC = false;
 
+        /* IN-DEV */
+        public bool b_autoReset = false;
+
         /* ESP */
         public bool b_EnableESP;
         public bool b_ItemESP;
@@ -63,6 +66,7 @@ namespace ProjectApparatus
         public float i_bhopSprint = 3f;
         public bool b_isAimbotting = false;
         public bool b_WallCheck = true;
+        public bool b_AutoDeposit = false;
         public string str_AimbotMethod = "Enemy";
 
 

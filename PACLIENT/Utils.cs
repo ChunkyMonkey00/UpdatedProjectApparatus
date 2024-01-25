@@ -109,7 +109,8 @@ namespace ProjectApparatus
             Players,
             Graphics,
             Upgrades,
-            Settings
+            Settings,
+            Dev
         }
 
         public static Tabs nTab = 0;
