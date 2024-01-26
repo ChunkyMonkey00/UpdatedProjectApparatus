@@ -1,0 +1,34 @@
+Seperate esp window:
+
+To send a Vector2 position from one window to another in Unity, you would typically use inter-process communication (IPC). However, Unity doesn't support IPC directly. Instead, you can use a workaround by creating a separate application that communicates between the two Unity applications.
+
+Here's a high-level overview of how you can achieve this:
+
+Create a Separate Application for Communication
+You can create a simple console application in C# that listens for incoming connections. This application will receive the Vector2 data from one Unity application and forward it to the other.
+
+TcpListener listener = new TcpListener(IPAddress.Any, port);
+listener.Start();
+TcpClient client = listener.AcceptTcpClient();
+NetworkStream stream = client.GetStream();
+In the above code, TcpListener is used to listen for incoming TCP connections. Once a connection is established, a NetworkStream is created from the TcpClient. This stream can be used to send and receive data.
+
+Send Data from One Unity Application
+In your Unity application, you can use the TcpClient class to connect to the listening application and send the Vector2 data.
+
+TcpClient client = new TcpClient("localhost", port);
+NetworkStream stream = client.GetStream();
+byte[] buffer = Encoding.ASCII.GetBytes(vector2.ToString());
+stream.Write(buffer, 0, buffer.Length);
+Here, TcpClient is used to establish a connection to the listening application. A NetworkStream is created from the TcpClient, and then the Vector2 data is converted to a string and sent over the network stream.
+
+Receive Data in Another Unity Application
+In the other Unity application, you can use a similar approach to receive the Vector2 data.
+
+TcpClient client = new TcpClient("localhost", port);
+NetworkStream stream = client.GetStream();
+byte[] buffer = new byte[client.ReceiveBufferSize];
+int bytesRead = stream.Read(buffer, 0, client.ReceiveBufferSize);
+string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+Vector2 receivedVector2 = JsonUtility.FromJson<Vector2>(data);
+Here, TcpClient is used to establish a connection to the listening application. A NetworkStream is created from the TcpClient, and then data is received over the network stream. The received data is then converted back into a Vector2.
