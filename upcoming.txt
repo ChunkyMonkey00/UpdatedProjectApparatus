@@ -1,0 +1,4 @@
+- Anti centipede (kills centipeds when they latch onto anyone)
+- Anti girl (invokes private method to stop the girl from chasing you)
+- Auto deposit (deposits items picked up into ship)
+- Infinite inventory
