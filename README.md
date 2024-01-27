@@ -41,6 +41,9 @@ For the prebuilt release, go to releases and download the zip file. Download the
 - Harmony Patches updated for v49 of Lethal Company
 - HELLA fixes for aimbot. System might be reworked soon...
 - Aimbot wont move mouse or work when lethalcompany isnt focused.
+- Infinitely deposit items on the sell desk
+- Button to instantly sell all items on the sell desk
+- Button to move all items from the ship to the sell desk
 
 Among other quality-of-life fixes.
 
