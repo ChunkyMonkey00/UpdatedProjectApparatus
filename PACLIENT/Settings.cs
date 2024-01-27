@@ -37,8 +37,10 @@ namespace ProjectApparatus
         /* Self */
         public bool b_GodMode;
         public bool b_NoFlash = false;
+        public bool b_NoBounds = false;
         public bool b_InfiniteStam, b_InfiniteCharge, b_InfiniteZapGun, b_InfiniteShotgunAmmo, b_InfiniteItems, b_UnlimitedGrabDistance;
         public bool b_RemoveWeight;
+        public float i_weight;
         public bool b_RemoveVisor;
         public bool b_CameraResolution;
         public bool b_OneHandAllObjects;
@@ -94,6 +96,8 @@ namespace ProjectApparatus
         public string str_ItemVal = "0";
         public bool b_inspectAnything = false;
         public bool b_playSound = false;
+        public bool b_antiCentipede = false;
+        public bool b_antiGirl = false;
 
         /* Graphics */
         public bool b_DisableFog, b_DisableBloom, b_DisableDepthOfField, b_DisableVignette, b_DisableFilmGrain, b_DisableExposure;

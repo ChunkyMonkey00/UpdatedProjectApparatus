@@ -23,6 +23,9 @@ using static UnityEngine.InputSystem.InputAction;
 using System.Windows.Forms;
 using Screen = UnityEngine.Screen;
 using static Unity.Netcode.NetworkManager;
+using UniverseLib;
+using Object = UnityEngine.Object;
+using Component = UnityEngine.Component;
 
 namespace ProjectApparatus
 {
@@ -53,6 +56,35 @@ namespace ProjectApparatus
         }
     }
 
+    [HarmonyPatch(typeof(OutOfBoundsTrigger))]
+    [HarmonyPatch("OnTriggerEnter")]
+    public class OutOfBoundsTriggerPatch
+    {
+        public static bool Prefix(OutOfBoundsTrigger __instance)
+        {
+            if (Settings.Instance.settingsData.b_NoBounds)
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(StartOfRound))]
+    [HarmonyPatch("ForcePlayerIntoShip")]
+    public class StartOfRoundPatch
+    {
+        public static bool Prefix(StartOfRound __instance)
+        {
+            // Check if you want to force the player into the ship under certain conditions
+            if (Settings.Instance.settingsData.b_NoBounds)
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
 
     [HarmonyPatch(typeof(PlayerControllerB), "Update")]
     public class PlayerControllerB_Update_Patch
@@ -71,7 +103,8 @@ namespace ProjectApparatus
 
                 oWeight = __instance.carryWeight;
                 if (Settings.Instance.settingsData.b_RemoveWeight)
-                    __instance.carryWeight = 1f;
+                    __instance.carryWeight = Settings.Instance.settingsData.i_weight;
+                else __instance.carryWeight = 1f;
             }
 
             return true;
@@ -94,6 +127,48 @@ namespace ProjectApparatus
             }
         }
     }
+
+    [HarmonyPatch(typeof(GrabbableObject), "GrabItem")]
+    public class Deposit_Patch
+    {
+        public static void Postfix()
+        {
+            if (Settings.Instance.settingsData.b_AutoDeposit)
+            {
+                Hacks.Inst2.grabItemAimbot();
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(DepositItemsDesk))]
+    [HarmonyPatch("PlaceItemOnCounter")]
+    public class DepositItemsPatch
+    {
+        static bool Prefix(DepositItemsDesk __instance, PlayerControllerB playerWhoTriggered)
+        {
+            if ((Object)(object)GameNetworkManager.Instance != (Object)null && (Object)(object)playerWhoTriggered == (Object)(object)GameNetworkManager.Instance.localPlayerController)
+            {
+                Vector3 val = RoundManager.RandomPointInBounds(((Collider)__instance.triggerCollider).bounds);
+                Bounds bounds = ((Collider)__instance.triggerCollider).bounds;
+                val.y = bounds.min.y;
+                RaycastHit val2 = default(RaycastHit);
+                if (Physics.Raycast(new Ray(val + Vector3.up * 3f, Vector3.down), out val2, 8f, 1048640, QueryTriggerInteraction.Collide))
+                {
+                    val = val2.point;
+                }
+                val.y += playerWhoTriggered.currentlyHeldObjectServer.itemProperties.verticalOffset;
+                val = ((Component)__instance.deskObjectsContainer).transform.InverseTransformPoint(val);
+                NetworkObject networkObject = ((Component)playerWhoTriggered.currentlyHeldObjectServer).gameObject.GetComponent<NetworkObject>();
+                __instance.AddObjectToDeskServerRpc(networkObject);
+                playerWhoTriggered.DiscardHeldObject(true, __instance.deskObjectsContainer, val, false);
+                Debug.Log((object)"discard held object called from deposit items desk");
+            }
+
+            // Cancel the original method execution
+            return false;
+        }
+    }
+
 
     [HarmonyPatch(typeof(PlayerControllerB), "LateUpdate")]
     public class PlayerControllerB_LateUpdate_Patch
@@ -259,10 +334,11 @@ namespace ProjectApparatus
             }
 
             Settings.Instance.settingsData.b_SprintSpeed = orig;
+
+            // Continue with the original method execution
             return true;
         }
     }
-
 
 
     /*

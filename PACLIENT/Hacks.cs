@@ -28,6 +28,8 @@ using System.Collections;
 using System.Text.RegularExpressions;
 using Random = UnityEngine.Random;
 using UnityEngine.UI;
+using UnityEngine.Animations.Rigging;
+using Mono.CSharp.Linq;
 
 namespace ProjectApparatus
 {
@@ -87,6 +89,8 @@ namespace ProjectApparatus
 
         bool upPressed = false;
         bool downPressed = false;
+
+        public Vector2 screenEndPosition;
 
         private static GUIStyle Style = null;
         private readonly SettingsData settingsData = Settings.Instance.settingsData;
@@ -171,10 +175,16 @@ namespace ProjectApparatus
                 Settings.Instance.windowRect = GUILayout.Window(0, Settings.Instance.windowRect, new GUI.WindowFunction(MenuContent), "Project Apparatus", Array.Empty<GUILayoutOption>());
             }
 
-            if (settingsData.b_Crosshair)
+            if (settingsData.b_Crosshair && !ThirdpersonCamera.ViewState)
             {
                 Render.FilledCircle(centeredPos, 5, Color.black);
                 Render.FilledCircle(centeredPos, 3, settingsData.c_Theme);
+            }
+            else
+            {
+                // Pass the 2D position to the FilledCircle method
+                Render.FilledCircle(screenEndPosition, 3, settingsData.c_Theme);
+                Render.FilledCircle(screenEndPosition, 1, Color.black);
             }
         }
 
@@ -223,12 +233,14 @@ namespace ProjectApparatus
             {
                 UI.Checkbox(ref settingsData.b_GodMode, "God Mode", "Prevents you from taking any damage.");
                 UI.Checkbox(ref settingsData.b_NoFlash, "No flash", "Prevents you from being flashbanged");
+                UI.Checkbox(ref settingsData.b_NoBounds, "No bounds", "Removes out of bounds areas");
                 UI.Checkbox(ref settingsData.b_InfiniteStam, "Infinite Stamina", "Prevents you from losing any stamina.");
                 UI.Checkbox(ref settingsData.b_InfiniteCharge, "Infinite Charge", "Prevents your items from losing any charge.");
                 UI.Checkbox(ref settingsData.b_InfiniteZapGun, "Infinite Zap Gun", "Infinitely stuns enemies with the zap-gun.");
                 UI.Checkbox(ref settingsData.b_InfiniteShotgunAmmo, "Infinite Shotgun Ammo", "Prevents you from out of ammo.");
                 UI.Checkbox(ref settingsData.b_InfiniteItems, "Infinite Item Use", "Allows you to infinitely use items like the gift box and stun grenade. (Buggy)");
-                UI.Checkbox(ref settingsData.b_RemoveWeight, "No Weight", "Removes speed limitations caused by item weight.");
+                UI.Checkbox(ref settingsData.b_RemoveWeight, $"Change Weight ({settingsData.i_weight}x)", "Change your current weight");
+                settingsData.i_weight = GUILayout.HorizontalSlider(settingsData.i_weight, 0, 4);
                 UI.Checkbox(ref settingsData.b_InteractThroughWalls, "Interact Through Walls", "Allows you to interact with anything through walls.");
                 UI.Checkbox(ref settingsData.b_UnlimitedGrabDistance, "No Grab Distance Limit", "Allows you to interact with anything no matter the distance.");
                 UI.Checkbox(ref settingsData.b_OneHandAllObjects, "One Hand All Objects", "Allows you to one-hand any two-handed objects.");
@@ -297,6 +309,7 @@ namespace ProjectApparatus
                 UI.Checkbox(ref settingsData.b_NoMoreCredits, "No More Credits", "Prevents your group from receiving any credits. (Doesn't apply to quota)");
                 UI.Checkbox(ref settingsData.b_SensitiveLandmines, "Sensitive Landmines", "Automatically detonates landmines when a player is in kill range.");
                 UI.Checkbox(ref settingsData.b_AllJetpacksExplode, "All Jetpacks Explode", "When a player tries to equip a jetpack they will be greeted with an explosion.");
+                UI.Checkbox(ref settingsData.b_antiCentipede, "Anti-Centipede cling", "Kills centipedes when they cling to players");
                 UI.Checkbox(ref settingsData.b_LightShow, "Light Show", "Rapidly turns on/off the light switch and TV.");
                 UI.Checkbox(ref settingsData.b_TerminalNoisemaker, "Terminal Noisemaker", "Plays a very annoying noise from the terminal.");
                 UI.Checkbox(ref settingsData.b_AlwaysShowClock, "Always Show Clock", "Displays the clock even when you are in the facility.");
@@ -413,7 +426,7 @@ namespace ProjectApparatus
                 if (!settingsData.b_NoMoreCredits)
                 {
                     settingsData.str_MoneyToGive = GUILayout.TextField(settingsData.str_MoneyToGive, Array.Empty<GUILayoutOption>());
-                    UI.Button("Give Credits", "Give your group however many credits you want. (Doesn't apply to quota)", () =>
+                    UI.Button("Give Credits", "(Host only) Give your group however many credits you want. (Doesn't apply to quota)", () =>
                     {
                         if (Instance.shipTerminal)
                         {
@@ -476,6 +489,14 @@ namespace ProjectApparatus
                 {
                     foreach (EnemyAI obj in Instance.enemies)
                         obj?.KillEnemyServerRpc(true);
+                });
+                UI.Button("Take Items off desk immediate", "Forces an immediate sell of all items on desk", () =>
+                {
+                    SellDeskItems();
+                });
+                UI.Button("Deposit all items", "Attempts to place every object in the ship on the deposit desk.", () =>
+                {
+                    SellAllInShip();
                 });
                 UI.Button("Attack Players at Deposit Desk", "Forces the tentacle monster to attack, killing a nearby player.", () =>
                 {
@@ -1046,8 +1067,6 @@ namespace ProjectApparatus
             });
 
             SnapTo(closestItem.transform.position);
-
-            grabItemAimbot(settingsData.b_AutoDeposit);
         }
 
         public void PlayerTargetUpdate()
@@ -1142,21 +1161,12 @@ namespace ProjectApparatus
             localPlayerController.isInsideFactory = factory;
         }
 
-        public IEnumerator grabItemAimbot(bool autoDeposit = true)
+        public void grabItemAimbot()
         {
-            if (killTimer <= 0.3f) yield break;
-            killTimer = 0f;
-
-            if (autoDeposit)
-            {
-                Vector3 savedPos = Instance.localPlayer.transform.position;
-                if (Instance.shipRoom)
-                    Instance.localPlayer?.TeleportPlayer(Instance.shipRoom.transform.position);
-                yield return new WaitForSeconds((float)0.1);
-                Instance.localPlayer.DropAllHeldItems(true, false);
-                yield return new WaitForSeconds((float)0.1);
-                Teleport(savedPos, false, false, false);
-            }
+            Vector3 savedPos = Instance.localPlayer.transform.position;
+            Instance.localPlayer?.TeleportPlayer(Instance.shipRoom.transform.position);
+            //WIP CallMethod(Instance.localPlayer, "Discard_performed", BindingFlags.Instance | BindingFlags.NonPublic);
+            Teleport(savedPos, false, false, false);
         }
 
         public void killPlayerAimbot(PlayerControllerB player)
@@ -1612,6 +1622,12 @@ namespace ProjectApparatus
                         val.AddComponent<ScanNodeProperties>().scrapValue = StartOfRound.Instance.allItemsList.itemsList[i].maxValue;
                         val.GetComponent<GrabbableObject>().SetScrapValue(StartOfRound.Instance.allItemsList.itemsList[i].maxValue);
                         val.GetComponent<NetworkObject>().Spawn(false);
+
+                        if (name == "Shotgun")
+                        {
+                            val.AddComponent<ShotgunItem>();
+                            val.GetComponent<ShotgunItem>().shellsLoaded = 2;
+                        }
                         return "true";
                     }
                     catch (Exception e)
@@ -1628,6 +1644,50 @@ namespace ProjectApparatus
             /* Make autocorrect spawn here */
             return closestMatch;
         }
+
+        public void SellDeskItems()
+        {
+            DepositItemsDesk did = Instance.itemsDesk;
+            if (!did || did == null) return;
+            did.SellItemsOnServer();
+        }
+
+        public void SellAllInShip()
+        {
+            DepositItemsDesk did = Instance.itemsDesk;
+            if (!did || did == null) return;
+            var objs = Instance.items.Where(grabbableObject =>
+                    grabbableObject != null &&
+                    !grabbableObject.isHeld &&
+                    !grabbableObject.isPocketed &&
+                    grabbableObject.itemProperties != null &&
+                    ((settingsData.b_ItemDistanceLimit &&
+                    PAUtils.GetDistance(Instance.localPlayer.gameplayCamera.transform.position,
+                        grabbableObject.transform.position) < settingsData.fl_ItemDistanceLimit) ||
+                        !settingsData.b_ItemDistanceLimit)
+                );
+            foreach (var obj in objs)
+            {
+                try
+                {
+                    if (!obj.isInShipRoom) continue;
+                    if (obj.isPocketed) continue;
+                    if (obj.isHeld) continue;
+                    if (obj.isBeingUsed) continue;
+                    if (obj.heldByPlayerOnServer) continue;
+
+                    Instance.localPlayer.currentlyHeldObject = obj;
+                    Instance.localPlayer.currentlyHeldObjectServer = obj;
+                    did.PlaceItemOnCounter(Instance.localPlayer);
+                }
+                catch (Exception ex)
+                {
+                    // Log the exception details for debugging purposes
+                    Debug.Log($"Error occurred: {ex.Message}");
+                }
+            }
+        }
+
 
         public GameObject SpawnClientItem(string name)
         {
@@ -1694,6 +1754,73 @@ namespace ProjectApparatus
             SpawnItem("Shotgun");
         }
 
+        public void DrawLine(Vector3 startPosition, Quaternion rotation)
+        {
+            LineRenderer lineRenderer = Instance.localPlayer.gameObject.GetComponent<LineRenderer>();
+
+            lineRenderer.startColor = Color.red;
+            lineRenderer.endColor = Color.red;
+            lineRenderer.startWidth = 0.05f;
+            lineRenderer.endWidth = 0.05f;
+            lineRenderer.positionCount = 2;
+
+            Vector3 direction = rotation * Vector3.forward;
+
+            // Offset the start position forward by 0.7 units
+            startPosition += direction * 0.7f;
+
+            Vector3 endPosition = startPosition + direction * 50;
+
+            // Cast a ray from the start position in the direction of the line
+            RaycastHit hit;
+            if (Physics.Raycast(startPosition, direction, out hit, 50, StartOfRound.Instance.collidersAndRoomMaskAndDefault))
+            {
+                // If the ray hits something, set the end position of the line to the hit point
+                endPosition = hit.point;
+            }
+
+            lineRenderer.SetPosition(0, startPosition);
+            lineRenderer.SetPosition(1, endPosition);
+
+            // Convert the end position to a 2D position on the screen
+            screenEndPosition = Instance.localPlayer.gameplayCamera.WorldToScreenPoint(endPosition);
+        }
+
+        public void TPCursorUpdate()
+        {
+            if (ThirdpersonCamera.ViewState && Instance.localPlayer.gameObject.GetComponent<LineRenderer>() != null)
+                DrawLine(Instance.localPlayer.gameplayCamera.transform.position, Instance.localPlayer.gameplayCamera.transform.rotation);
+        }
+
+        public void AntiCentipedeUpdate()
+        {
+            if (settingsData.b_antiCentipede)
+            {
+                CentipedeAI[] centipedes = FindObjectsOfType<CentipedeAI>();
+
+                foreach (CentipedeAI centipede in centipedes)
+                {
+                    if (centipede.clingingToPlayer != null)
+                    {
+                        centipede.KillEnemyServerRpc(false);
+                    }
+                }
+            }
+        }
+
+        public void AntiDressGirl()
+        {
+            if (settingsData.b_antiGirl)
+            {
+                DressGirlAI[] girls = FindObjectsOfType<DressGirlAI>();
+
+                foreach (DressGirlAI girl in girls)
+                {
+                    CallMethod(girl, "StopChasing", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.InvokeMethod);
+                }
+            }
+        }
+
         public void Update()
         {
             killTimer += Time.deltaTime;
@@ -1709,6 +1836,8 @@ namespace ProjectApparatus
             }
 
             CooldownCheck();
+            TPCursorUpdate();
+            AntiDressGirl();
 
             if (PAUtils.GetAsyncKeyState((int)Keys.LButton) == 0 && settingsData.holdingMouse) settingsData.holdingMouse = false;
 

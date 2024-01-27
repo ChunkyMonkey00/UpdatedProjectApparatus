@@ -109,7 +109,16 @@ namespace ProjectApparatus
 
                     ThirdpersonUpdate();
                     if ((PAUtils.GetAsyncKeyState(Settings.Instance.settingsData.keyThirdperson) & 1) != 0)
+                    {
                         ThirdpersonCamera.Toggle();
+                        if (ThirdpersonCamera.ViewState == true)
+                        {
+                            Instance.localPlayer.gameObject.AddComponent<LineRenderer>();
+                        } else
+                        {
+                            Destroy(Instance.localPlayer.gameObject.GetComponent<LineRenderer>());
+                        }
+                    }
                 }
 
                 private void ThirdpersonUpdate()
