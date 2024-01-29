@@ -22,6 +22,7 @@ For the prebuilt release, go to releases and download the zip file. Download the
 - God mode fix
 - Allow player to look down all the way
 - Add spawn item
+- Add spawn enemy (by name, given coords and outside bool)
 - Add aimbot (finished)
 - Aimbot can now target players or enemies
 - Aimbot can now target items
